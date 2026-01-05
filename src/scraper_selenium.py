@@ -38,19 +38,59 @@ def scrape_product_selenium(url: str) -> Optional[Dict[str, any]]:
     try:
         # Setup Chrome options
         chrome_options = Options()
-        chrome_options.add_argument('--headless')  # Run in background
+        chrome_options.add_argument('--headless=new')  # Use new headless mode
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument(f'user-agent={USER_AGENT}')
         chrome_options.add_argument('--disable-blink-features=AutomationControlled')
-        chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--disable-software-rasterizer')
+        chrome_options.add_argument('--disable-extensions')
         
-        # Create driver - catch Chrome binary errors
+        # Try to find Chrome binary in common locations (for Docker/Render)
+        import os
+        chrome_binary = None
+        possible_paths = [
+            '/usr/bin/google-chrome',
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/chromium',
+            '/usr/bin/chromium-browser',
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                chrome_binary = path
+                chrome_options.binary_location = chrome_binary
+                print(f"  Found Chrome binary at: {chrome_binary}")
+                break
+        
+        # Create driver - try multiple methods
+        driver = None
         try:
-            service = Service(ChromeDriverManager().install())
-            driver = webdriver.Chrome(service=service, options=chrome_options)
+            # Method 1: Try with ChromeDriverManager (works locally)
+            try:
+                service = Service(ChromeDriverManager().install())
+                driver = webdriver.Chrome(service=service, options=chrome_options)
+                print("  [OK] Chrome driver created with ChromeDriverManager")
+            except Exception as e1:
+                print(f"  ChromeDriverManager failed: {str(e1)}")
+                # Method 2: Try with system chromedriver (works in Docker)
+                try:
+                    service = Service('/usr/bin/chromedriver') if os.path.exists('/usr/bin/chromedriver') else None
+                    if service:
+                        driver = webdriver.Chrome(service=service, options=chrome_options)
+                        print("  [OK] Chrome driver created with system chromedriver")
+                    else:
+                        # Method 3: Try without service (Chrome finds driver automatically)
+                        driver = webdriver.Chrome(options=chrome_options)
+                        print("  [OK] Chrome driver created without explicit service")
+                except Exception as e2:
+                    print(f"  System chromedriver failed: {str(e2)}")
+                    # Method 4: Last resort - try without service
+                    driver = webdriver.Chrome(options=chrome_options)
+                    print("  [OK] Chrome driver created (last resort)")
         except Exception as chrome_error:
-            # Chrome not available (e.g., in cloud environments)
+            # Chrome not available
             error_msg = str(chrome_error).lower()
             if 'chrome' in error_msg or 'binary' in error_msg or 'executable' in error_msg:
                 print(f"  Chrome not available: {str(chrome_error)}")

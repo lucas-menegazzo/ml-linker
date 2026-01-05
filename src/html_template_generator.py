@@ -163,16 +163,76 @@ def generate_from_html_template(product_data: Dict, output_path: str, temp_image
         
         # Setup Chrome options
         chrome_options = Options()
-        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--headless=new')  # Use new headless mode
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--window-size=1200,1200')  # Larger window to capture everything
         chrome_options.add_argument('--disable-gpu')
+        chrome_options.add_argument('--window-size=1200,1200')
         chrome_options.add_argument('--force-device-scale-factor=1')
+        chrome_options.add_argument('--disable-software-rasterizer')
+        chrome_options.add_argument('--disable-extensions')
+        chrome_options.add_argument('--disable-background-networking')
+        chrome_options.add_argument('--disable-background-timer-throttling')
+        chrome_options.add_argument('--disable-renderer-backgrounding')
+        chrome_options.add_argument('--disable-backgrounding-occluded-windows')
+        chrome_options.add_argument('--disable-breakpad')
+        chrome_options.add_argument('--disable-component-extensions-with-background-pages')
+        chrome_options.add_argument('--disable-features=TranslateUI')
+        chrome_options.add_argument('--disable-ipc-flooding-protection')
+        chrome_options.add_argument('--enable-features=NetworkService,NetworkServiceInProcess')
+        chrome_options.add_argument('--force-color-profile=srgb')
+        chrome_options.add_argument('--metrics-recording-only')
+        chrome_options.add_argument('--mute-audio')
+        chrome_options.add_argument('--no-first-run')
+        chrome_options.add_argument('--disable-default-apps')
+        chrome_options.add_argument('--disable-sync')
         
-        # Create driver
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        # Try to find Chrome binary in common locations (for Docker/Render)
+        chrome_binary = None
+        possible_paths = [
+            '/usr/bin/google-chrome',
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/chromium',
+            '/usr/bin/chromium-browser',
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                chrome_binary = path
+                print(f"  Found Chrome binary at: {chrome_binary}")
+                break
+        
+        if chrome_binary:
+            chrome_options.binary_location = chrome_binary
+        
+        # Create driver - try multiple methods
+        driver = None
+        try:
+            # Method 1: Try with ChromeDriverManager (works locally)
+            try:
+                service = Service(ChromeDriverManager().install())
+                driver = webdriver.Chrome(service=service, options=chrome_options)
+                print("  [OK] Chrome driver created with ChromeDriverManager")
+            except Exception as e1:
+                print(f"  ChromeDriverManager failed: {str(e1)}")
+                # Method 2: Try with system chromedriver (works in Docker)
+                try:
+                    service = Service('/usr/bin/chromedriver') if os.path.exists('/usr/bin/chromedriver') else None
+                    if service:
+                        driver = webdriver.Chrome(service=service, options=chrome_options)
+                        print("  [OK] Chrome driver created with system chromedriver")
+                    else:
+                        # Method 3: Try without service (Chrome finds driver automatically)
+                        driver = webdriver.Chrome(options=chrome_options)
+                        print("  [OK] Chrome driver created without explicit service")
+                except Exception as e2:
+                    print(f"  System chromedriver failed: {str(e2)}")
+                    # Method 4: Last resort - try without service
+                    driver = webdriver.Chrome(options=chrome_options)
+                    print("  [OK] Chrome driver created (last resort)")
+        except Exception as e:
+            print(f"  [ERROR] Failed to create Chrome driver: {str(e)}")
+            raise
         
         try:
             # Load HTML file

@@ -111,23 +111,15 @@ def scrape_product(url: str) -> Optional[Dict[str, any]]:
         product_id = id_match.group(1)
     
     # Try Selenium first (most reliable for JavaScript-rendered pages)
-    # But skip if we're in a cloud environment where Chrome is not available
+    # Now works in Docker/Render with Chrome installed
     try:
         from src.scraper_selenium import scrape_product_selenium, SELENIUM_AVAILABLE
         if SELENIUM_AVAILABLE:
-            # Check if we're in a cloud environment (Render, Heroku, etc.)
-            import os
-            is_cloud = os.environ.get('RENDER') or os.environ.get('DYNO') or os.environ.get('FLY_APP_NAME')
-            
-            if not is_cloud:
-                # Only try Selenium if not in cloud (where Chrome is not available)
-                print("  Using Selenium for JavaScript-rendered content...")
-                result = scrape_product_selenium(clean_url)
-                if result:
-                    return result
-                print("  Selenium extraction failed, trying HTML parser...")
-            else:
-                print("  Cloud environment detected, skipping Selenium (Chrome not available), using HTML parser...")
+            print("  Using Selenium for JavaScript-rendered content...")
+            result = scrape_product_selenium(clean_url)
+            if result:
+                return result
+            print("  Selenium extraction failed, trying HTML parser...")
         else:
             print("  Selenium not available, using HTML parser...")
     except ImportError:
@@ -135,7 +127,7 @@ def scrape_product(url: str) -> Optional[Dict[str, any]]:
     except Exception as e:
         error_msg = str(e).lower()
         if 'chrome' in error_msg and ('binary' in error_msg or 'executable' in error_msg):
-            print("  Chrome not available in this environment, using HTML parser...")
+            print("  Chrome not available, using HTML parser...")
         else:
             print(f"  Selenium error: {str(e)}, trying HTML parser...")
     
