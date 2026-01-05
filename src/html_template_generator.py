@@ -110,6 +110,15 @@ def generate_from_html_template(product_data: Dict, output_path: str, temp_image
             html_content
         )
         
+        # Replace product name
+        # Truncate title if too long (max ~50 chars for better display)
+        display_title = title[:50] + ('...' if len(title) > 50 else '')
+        html_content = re.sub(
+            r'<div class="productName"><!-- DATA -->Nome do Produto Aqui</div>',
+            f'<div class="productName">{display_title}</div>',
+            html_content
+        )
+        
         # Keep CTA text as is
         html_content = re.sub(
             r'<div class="cta"><!-- DATA -->Vale muito a pena</div>',
@@ -383,7 +392,26 @@ def generate_with_pillow_fallback(product_data: Dict, output_path: str, temp_ima
         price_text_x, price_text_y = price_x + 34, currency_y + 50
         draw.text((price_text_x, price_text_y), price_number, fill="#FFFFFF", font=font_price)
         
-        # 5. CTA "Vale muito a pena" (bottom left)
+        # 5. Product name box (above CTA)
+        product_name_x, product_name_y = 85, 840
+        product_name_width, product_name_height = 600, 80
+        # Truncate title if too long
+        display_title = title[:50] + ('...' if len(title) > 50 else '')
+        rounded_rectangle(
+            draw,
+            [(product_name_x, product_name_y), (product_name_x + product_name_width, product_name_y + product_name_height)],
+            radius=22,
+            fill="#FFFFFF"
+        )
+        
+        font_product_name = load_font_bold(28)
+        bbox_name = draw.textbbox((0, 0), display_title, font=font_product_name)
+        # Handle text wrapping if needed
+        name_text_x = product_name_x + 32
+        name_text_y = product_name_y + (product_name_height - (bbox_name[3] - bbox_name[1])) // 2
+        draw.text((name_text_x, name_text_y), display_title, fill="#121317", font=font_product_name)
+        
+        # 6. CTA "Vale muito a pena" (bottom left)
         cta_x, cta_y = 85, 920
         cta_width, cta_height = 300, 60
         rounded_rectangle(
