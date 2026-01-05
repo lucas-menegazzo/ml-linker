@@ -156,6 +156,50 @@ def generate_from_html_template(product_data: Dict, output_path: str, temp_image
         else:
             print(f"  [WARN] No image to embed, using placeholder")
         
+        # Load and embed logo (Clicou Economizou)
+        logo_data_url = None
+        assets_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets")
+        logo_paths = [
+            os.path.join(assets_dir, "logo.png"),
+            os.path.join(assets_dir, "logo.jpg"),
+            os.path.join(assets_dir, "logo.jpeg"),
+        ]
+        
+        for logo_path in logo_paths:
+            if os.path.exists(logo_path):
+                try:
+                    import base64
+                    with open(logo_path, 'rb') as logo_file:
+                        logo_data = logo_file.read()
+                        # Detect image type
+                        if logo_path.lower().endswith('.png'):
+                            logo_mime = 'image/png'
+                        else:
+                            logo_mime = 'image/jpeg'
+                        
+                        logo_base64 = base64.b64encode(logo_data).decode('utf-8')
+                        logo_data_url = f"data:{logo_mime};base64,{logo_base64}"
+                        print(f"  [OK] Logo loaded and embedded: {os.path.basename(logo_path)}")
+                        break
+                except Exception as e:
+                    print(f"  [WARN] Could not load logo: {str(e)}")
+        
+        # Replace logo src with base64 data URL
+        if logo_data_url:
+            html_content = re.sub(
+                r'<img class="logo"[^>]*src="[^"]*"[^>]*>',
+                f'<img class="logo" src="{logo_data_url}" alt="Clicou Economizou" />',
+                html_content
+            )
+        else:
+            # Hide logo if not found
+            html_content = re.sub(
+                r'<img class="logo"[^>]*>',
+                '<!-- Logo not found -->',
+                html_content
+            )
+            print(f"  [WARN] Logo not found in assets folder, hiding logo element")
+        
         # Save temporary HTML file
         temp_html_path = os.path.join(temp_image_dir, f"temp_template_{int(time.time())}.html")
         with open(temp_html_path, 'w', encoding='utf-8') as f:
@@ -488,6 +532,35 @@ def generate_with_pillow_fallback(product_data: Dict, output_path: str, temp_ima
         cta_text_x = cta_x + (cta_width - (bbox[2] - bbox[0])) // 2
         cta_text_y = cta_y + (cta_height - (bbox[3] - bbox[1])) // 2
         draw.text((cta_text_x, cta_text_y), cta_text, fill="#FFFFFF", font=font_cta)
+        
+        # 7. Logo "Clicou Economizou" (bottom right)
+        logo_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "logo.png"),
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "logo.jpg"),
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "logo.jpeg"),
+        ]
+        
+        logo_img = None
+        for logo_path in logo_paths:
+            if os.path.exists(logo_path):
+                try:
+                    logo_img = Image.open(logo_path)
+                    print(f"  [FALLBACK] Logo loaded: {os.path.basename(logo_path)}")
+                    break
+                except Exception as e:
+                    print(f"  [FALLBACK] Could not load logo: {str(e)}")
+        
+        if logo_img:
+            # Resize logo to fit (height: 80px, maintain aspect ratio)
+            logo_height = 80
+            logo_aspect = logo_img.width / logo_img.height
+            logo_width = int(logo_height * logo_aspect)
+            logo_img = logo_img.resize((logo_width, logo_height), Image.Resampling.LANCZOS)
+            
+            # Position in bottom right
+            logo_x = width - logo_width - 50
+            logo_y = height - logo_height - 50
+            img.paste(logo_img, (logo_x, logo_y), logo_img if logo_img.mode == 'RGBA' else None)
         
         # Save image
         output_dir = os.path.dirname(output_path)
