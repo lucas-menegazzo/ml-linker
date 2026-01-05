@@ -223,37 +223,78 @@ def scrape_product_selenium(url: str) -> Optional[Dict[str, any]]:
             pass
         
         # Extract image - try multiple strategies
-        img_selectors = [
-            "img.ui-pdp-image",
-            "img[class*='ui-pdp-image']",
-            "img[data-zoom]",
-            ".ui-pdp-image img",
-            "img[alt*='produto']",
-            "img[alt*='product']",
-            ".ui-pdp-gallery img",
-            "[class*='gallery'] img"
+        # First, try XPath for large image (main gallery image)
+        xpath_selectors = [
+            "//*[@id=':Raool7le:']/div[2]/div/div/div[1]/a/img",  # Large gallery image
+            "//div[contains(@class, 'ui-pdp-gallery')]//a/img",  # Gallery link image
+            "//div[contains(@class, 'gallery')]//a/img",  # Generic gallery
         ]
         
-        for selector in img_selectors:
+        for xpath in xpath_selectors:
             try:
-                img_element = driver.find_element(By.CSS_SELECTOR, selector)
+                img_element = driver.find_element(By.XPATH, xpath)
                 img_url = (img_element.get_attribute('src') or 
                           img_element.get_attribute('data-src') or 
                           img_element.get_attribute('data-zoom') or
-                          img_element.get_attribute('data-lazy-src'))
+                          img_element.get_attribute('data-lazy-src') or
+                          img_element.get_attribute('href'))
                 if img_url:
                     if img_url.startswith('//'):
                         img_url = 'https:' + img_url
                     elif img_url.startswith('/'):
                         img_url = 'https://www.mercadolivre.com.br' + img_url
-                    # Clean URL
+                    # Clean URL - remove size parameters to get full resolution
                     img_url = img_url.split('?')[0]
+                    # Remove size suffixes like -O.jpg, -V.jpg, etc. to get full size
+                    if '-O.' in img_url or '-V.' in img_url or '-F.' in img_url:
+                        # Replace with -O for original/full size
+                        img_url = re.sub(r'-[OVF]\.[^.]+$', '-O.jpg', img_url)
                     # Check if it looks like a product image
-                    if any(keyword in img_url.lower() for keyword in ['mlb', 'produto', 'product', 'o-l', 'o-f']):
+                    if any(keyword in img_url.lower() for keyword in ['mlb', 'produto', 'product', 'o-l', 'o-f', 'http']):
                         product_data['image_url'] = img_url
+                        print(f"  [OK] Found large image via XPath: {img_url[:80]}...")
                         break
             except:
                 continue
+        
+        # If XPath didn't work, try CSS selectors
+        if not product_data['image_url']:
+            img_selectors = [
+                "img.ui-pdp-image",
+                "img[class*='ui-pdp-image']",
+                "img[data-zoom]",
+                ".ui-pdp-image img",
+                "img[alt*='produto']",
+                "img[alt*='product']",
+                ".ui-pdp-gallery img",
+                "[class*='gallery'] img",
+                ".ui-pdp-gallery__column img",
+                "a[href*='zoom'] img"
+            ]
+            
+            for selector in img_selectors:
+                try:
+                    img_element = driver.find_element(By.CSS_SELECTOR, selector)
+                    img_url = (img_element.get_attribute('src') or 
+                              img_element.get_attribute('data-src') or 
+                              img_element.get_attribute('data-zoom') or
+                              img_element.get_attribute('data-lazy-src'))
+                    if img_url:
+                        if img_url.startswith('//'):
+                            img_url = 'https:' + img_url
+                        elif img_url.startswith('/'):
+                            img_url = 'https://www.mercadolivre.com.br' + img_url
+                        # Clean URL - remove size parameters
+                        img_url = img_url.split('?')[0]
+                        # Remove size suffixes to get full size
+                        if '-O.' in img_url or '-V.' in img_url or '-F.' in img_url:
+                            img_url = re.sub(r'-[OVF]\.[^.]+$', '-O.jpg', img_url)
+                        # Check if it looks like a product image
+                        if any(keyword in img_url.lower() for keyword in ['mlb', 'produto', 'product', 'o-l', 'o-f']):
+                            product_data['image_url'] = img_url
+                            break
+                except:
+                    continue
         
         # Fallback: try og:image meta tag
         if not product_data['image_url']:
