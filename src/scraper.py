@@ -34,6 +34,7 @@ def try_mercado_livre_api(product_id: str) -> Optional[Dict]:
     """
     Try to fetch product data from Mercado Livre API.
     This is a fallback when HTML parsing fails.
+    Note: May fail in cloud environments due to DNS issues.
     """
     try:
         # Mercado Livre API endpoint for items
@@ -45,7 +46,7 @@ def try_mercado_livre_api(product_id: str) -> Optional[Dict]:
         }
         
         print(f"  Trying Mercado Livre API for product ID: MLB{product_id}")
-        response = requests.get(api_url, headers=headers, timeout=REQUEST_TIMEOUT)
+        response = requests.get(api_url, headers=headers, timeout=5)  # Shorter timeout
         if response.status_code == 200:
             data = response.json()
             
@@ -78,8 +79,12 @@ def try_mercado_livre_api(product_id: str) -> Optional[Dict]:
                 return product_data
         else:
             print(f"  API returned status {response.status_code}")
+    except requests.exceptions.ConnectionError as e:
+        # DNS or connection issues - common in cloud environments
+        print(f"  API unavailable (DNS/network issue), skipping...")
     except Exception as e:
-        print(f"  API fetch failed: {str(e)}")
+        # Silently fail - API is optional
+        pass
     
     return None
 
@@ -98,12 +103,6 @@ def scrape_product(url: str) -> Optional[Dict[str, any]]:
     # Normalize and clean URL
     clean_url = normalize_url(url)
     print(f"Scraping: {clean_url}")
-    
-    # Try to extract product ID for API fallback
-    product_id = None
-    id_match = re.search(r'MLB-?(\d+)', clean_url, re.IGNORECASE)
-    if id_match:
-        product_id = id_match.group(1)
     
     # Try to extract product ID for API fallback
     product_id = None
@@ -267,9 +266,11 @@ def extract_from_json(soup: BeautifulSoup, url: str) -> Optional[Dict]:
     
     # Look for window.__PRELOADED_STATE__ or similar JSON data
     scripts = soup.find_all('script')
+    all_script_text = ""
     for script in scripts:
         if script.string:
             script_text = script.string
+            all_script_text += script_text + "\n"
             
             # Look for product data in window.__PRELOADED_STATE__
             if '__PRELOADED_STATE__' in script_text or 'window.__PRELOADED_STATE__' in script_text:
@@ -360,6 +361,47 @@ def extract_from_json(soup: BeautifulSoup, url: str) -> Optional[Dict]:
                         if len(title) > 5 and 'mercado livre' not in title.lower():
                             product_data['title'] = title
                             break
+    
+    # If we still don't have data, try searching all script text together
+    if all_script_text and (not product_data['title'] or not product_data['current_price']):
+        # Try to find any JSON-like structures with product data
+        # Look for patterns like: "item": {...} or "product": {...}
+        item_patterns = [
+            r'"item"\s*:\s*\{[^}]*"title"\s*:\s*"([^"]+)"[^}]*"price"\s*:\s*(\d+(?:\.\d+)?)',
+            r'"product"\s*:\s*\{[^}]*"name"\s*:\s*"([^"]+)"[^}]*"amount"\s*:\s*(\d+(?:\.\d+)?)',
+        ]
+        
+        for pattern in item_patterns:
+            match = re.search(pattern, all_script_text, re.IGNORECASE | re.DOTALL)
+            if match:
+                if not product_data['title'] and match.lastindex >= 1:
+                    title = match.group(1)
+                    if len(title) > 5:
+                        product_data['title'] = title
+                if not product_data['current_price'] and match.lastindex >= 2:
+                    try:
+                        price_val = float(match.group(2))
+                        if 1 <= price_val <= 1000000:
+                            product_data['current_price'] = price_val
+                    except:
+                        pass
+                if product_data['title'] and product_data['current_price']:
+                    break
+        
+        # Try to extract image from all scripts
+        if not product_data['image_url']:
+            image_patterns = [
+                r'"pictures"\s*:\s*\[[^\]]*"url"\s*:\s*"([^"]+)"',
+                r'"images"\s*:\s*\[[^\]]*"([^"]+\.(?:jpg|jpeg|png|webp))"',
+                r'https://[^"]*\.(?:jpg|jpeg|png|webp)',
+            ]
+            for pattern in image_patterns:
+                img_match = re.search(pattern, all_script_text, re.IGNORECASE)
+                if img_match:
+                    img_url = img_match.group(1) if img_match.lastindex >= 1 else img_match.group(0)
+                    if 'mlb' in img_url.lower() or 'produto' in img_url.lower():
+                        product_data['image_url'] = img_url
+                        break
     
     # Return only if we got at least title or price
     if product_data['title'] or product_data['current_price']:
