@@ -43,10 +43,19 @@ def scrape_product_selenium(url: str) -> Optional[Dict[str, any]]:
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument(f'user-agent={USER_AGENT}')
         chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+        chrome_options.add_argument('--disable-gpu')
         
-        # Create driver
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        # Create driver - catch Chrome binary errors
+        try:
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+        except Exception as chrome_error:
+            # Chrome not available (e.g., in cloud environments)
+            error_msg = str(chrome_error).lower()
+            if 'chrome' in error_msg or 'binary' in error_msg or 'executable' in error_msg:
+                print(f"  Chrome not available: {str(chrome_error)}")
+                return None
+            raise  # Re-raise if it's a different error
         
         # Clean URL
         clean_url = url.split('#')[0]
@@ -235,7 +244,12 @@ def scrape_product_selenium(url: str) -> Optional[Dict[str, any]]:
         return product_data
     
     except Exception as e:
-        print(f"Error with Selenium scraper: {str(e)}")
+        error_msg = str(e).lower()
+        # Check if it's a Chrome binary error (common in cloud environments)
+        if 'chrome' in error_msg and ('binary' in error_msg or 'executable' in error_msg or 'cannot find' in error_msg):
+            print(f"  Chrome not available in this environment, using HTML parser fallback...")
+        else:
+            print(f"  Error with Selenium scraper: {str(e)}")
         return None
     
     finally:
