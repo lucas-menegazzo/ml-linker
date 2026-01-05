@@ -260,6 +260,10 @@ def generate_with_pillow_fallback(product_data: Dict, output_path: str, temp_ima
     Recreates the template design using Pillow to match template.html style.
     """
     try:
+        print(f"  [FALLBACK] Starting Pillow-based image generation...")
+        print(f"  [FALLBACK] Output path: {output_path}")
+        print(f"  [FALLBACK] Product data: title={product_data.get('title', 'N/A')[:30]}, price={product_data.get('current_price', 0)}")
+        
         from PIL import Image, ImageDraw
         from src.config import INSTAGRAM_IMAGE_SIZE
         from src.utils import format_price
@@ -267,6 +271,8 @@ def generate_with_pillow_fallback(product_data: Dict, output_path: str, temp_ima
         import os
         
         width, height = INSTAGRAM_IMAGE_SIZE
+        print(f"  [FALLBACK] Image size: {width}x{height}")
+        
         # Background matching template.html
         img = Image.new('RGB', (width, height), color="#F4F4F6")
         draw = ImageDraw.Draw(img)
@@ -280,11 +286,19 @@ def generate_with_pillow_fallback(product_data: Dict, output_path: str, temp_ima
         # Format price
         price_text = format_price(current_price, currency)
         price_number = price_text.replace(currency, '').strip()
+        print(f"  [FALLBACK] Price formatted: {price_text}")
         
         # Download and load product image
         product_img = None
         if image_url:
+            print(f"  [FALLBACK] Loading product image from: {image_url[:80]}...")
             product_img = load_product_image(image_url, temp_image_dir)
+            if product_img:
+                print(f"  [FALLBACK] Product image loaded: {product_img.size}")
+            else:
+                print(f"  [FALLBACK] WARNING: Product image not loaded")
+        else:
+            print(f"  [FALLBACK] WARNING: No image URL provided")
         
         # 1. Ribbon "⚡ Oferta Relâmpago" (top left, rotated)
         # Simplified ribbon - yellow/orange banner
@@ -387,13 +401,24 @@ def generate_with_pillow_fallback(product_data: Dict, output_path: str, temp_ima
         draw.text((cta_text_x, cta_text_y), cta_text, fill="#FFFFFF", font=font_cta)
         
         # Save image
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        output_dir = os.path.dirname(output_path)
+        print(f"  [FALLBACK] Creating output directory: {output_dir}")
+        os.makedirs(output_dir, exist_ok=True)
+        
+        print(f"  [FALLBACK] Saving image to: {output_path}")
         img.save(output_path, 'JPEG', quality=95)
-        print(f"  [OK] Image generated with Pillow fallback: {output_path}")
-        return True
+        
+        # Verify file was created
+        if os.path.exists(output_path):
+            file_size = os.path.getsize(output_path)
+            print(f"  [OK] Image generated with Pillow fallback: {output_path} ({file_size} bytes)")
+            return True
+        else:
+            print(f"  [FAIL] Image file was not created at {output_path}")
+            return False
         
     except Exception as e:
-        print(f"Error in Pillow fallback: {str(e)}")
+        print(f"  [FAIL] Error in Pillow fallback: {str(e)}")
         import traceback
         traceback.print_exc()
         return False
@@ -477,148 +502,4 @@ def download_image_for_html(image_url: str, temp_dir: str) -> Optional[str]:
         import traceback
         traceback.print_exc()
         return None
-    """
-    Fallback image generation using Pillow (when Selenium is not available).
-    Recreates the template design using Pillow to match template.html style.
-    """
-    try:
-        from PIL import Image, ImageDraw
-        from src.config import INSTAGRAM_IMAGE_SIZE
-        from src.utils import format_price
-        from src.image_generator import load_product_image, rounded_rectangle, draw_star, load_font_bold
-        import os
-        
-        width, height = INSTAGRAM_IMAGE_SIZE
-        # Background matching template.html
-        img = Image.new('RGB', (width, height), color="#F4F4F6")
-        draw = ImageDraw.Draw(img)
-        
-        # Load product data
-        title = product_data.get('title', 'Produto')
-        image_url = product_data.get('image_url', '')
-        current_price = product_data.get('current_price', 0.0)
-        currency = product_data.get('currency', 'R$')
-        
-        # Format price
-        price_text = format_price(current_price, currency)
-        price_number = price_text.replace(currency, '').strip()
-        
-        # Download and load product image
-        product_img = None
-        if image_url:
-            product_img = load_product_image(image_url, temp_image_dir)
-        
-        # 1. Ribbon "⚡ Oferta Relâmpago" (top left, rotated)
-        # Simplified ribbon - yellow/orange banner
-        ribbon_y = 160
-        ribbon_points = [
-            (-40, ribbon_y),
-            (360, ribbon_y - 20),
-            (360, ribbon_y + 30),
-            (-40, ribbon_y + 50)
-        ]
-        draw.polygon(ribbon_points, fill="#FFCC00")
-        draw.polygon(ribbon_points, outline="#000000", width=2)
-        
-        # Ribbon text - use font loader
-        font_ribbon = load_font_bold(30)
-        draw.text((10, ribbon_y + 10), "⚡ OFERTA RELÂMPAGO", fill="#000000", font=font_ribbon)
-        
-        # 2. Badge "ACHADO DO DIA" (top left)
-        badge_x, badge_y = 70, 70
-        badge_width, badge_height = 350, 60
-        rounded_rectangle(
-            draw,
-            [(badge_x, badge_y), (badge_x + badge_width, badge_y + badge_height)],
-            radius=14,
-            fill="#0F1014"
-        )
-        
-        # Star icon (yellow square)
-        star_size = 26
-        star_x, star_y = badge_x + 16, badge_y + 17
-        draw.rectangle(
-            [(star_x, star_y), (star_x + star_size, star_y + star_size)],
-            fill="#FFD400"
-        )
-        # Star symbol
-        draw_star(draw, star_x + star_size//2, star_y + star_size//2, star_size//2, "#0F1014")
-        
-        # Badge text - use font loader
-        font_badge = load_font_bold(32)
-        badge_text = "ACHADO DO DIA"
-        bbox = draw.textbbox((0, 0), badge_text, font=font_badge)
-        text_x = star_x + star_size + 14
-        text_y = badge_y + (badge_height - (bbox[3] - bbox[1])) // 2
-        draw.text((text_x, text_y), badge_text, fill="#FFFFFF", font=font_badge)
-        
-        # 3. Product card (white, rounded) - matching template
-        card_x, card_y = 60, 200
-        card_width, card_height = 600, 600
-        rounded_rectangle(
-            draw,
-            [(card_x, card_y), (card_x + card_width, card_y + card_height)],
-            radius=40,
-            fill="#FFFFFF"
-        )
-        
-        # Product image inside card
-        if product_img:
-            padding = 50
-            max_img_width = card_width - (padding * 2)
-            max_img_height = card_height - (padding * 2)
-            product_img.thumbnail((max_img_width, max_img_height), Image.Resampling.LANCZOS)
-            img_x = card_x + (card_width - product_img.width) // 2
-            img_y = card_y + (card_height - product_img.height) // 2
-            img.paste(product_img, (img_x, img_y))
-        
-        # 4. Price panel (green, right side) - matching template
-        price_x, price_y = 680, 220
-        price_width, price_height = 380, 260
-        rounded_rectangle(
-            draw,
-            [(price_x, price_y), (price_x + price_width, price_y + price_height)],
-            radius=26,
-            fill="#19B45A"
-        )
-        
-        # Currency and price - use font loader
-        font_currency = load_font_bold(44)
-        font_price = load_font_bold(110)
-        
-        currency_x, currency_y = price_x + 34, price_y + 34
-        draw.text((currency_x, currency_y), currency, fill="#FFFFFF", font=font_currency)
-        price_text_x, price_text_y = price_x + 34, currency_y + 50
-        draw.text((price_text_x, price_text_y), price_number, fill="#FFFFFF", font=font_price)
-        
-        # 5. CTA "Vale muito a pena" (bottom left)
-        cta_x, cta_y = 85, 920
-        cta_width, cta_height = 300, 60
-        rounded_rectangle(
-            draw,
-            [(cta_x, cta_y), (cta_x + cta_width, cta_y + cta_height)],
-            radius=22,
-            fill="#1A1B20"
-        )
-        
-        # CTA font - use font loader
-        font_cta = load_font_bold(34)
-        
-        cta_text = "Vale muito a pena"
-        bbox = draw.textbbox((0, 0), cta_text, font=font_cta)
-        cta_text_x = cta_x + (cta_width - (bbox[2] - bbox[0])) // 2
-        cta_text_y = cta_y + (cta_height - (bbox[3] - bbox[1])) // 2
-        draw.text((cta_text_x, cta_text_y), cta_text, fill="#FFFFFF", font=font_cta)
-        
-        # Save image
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        img.save(output_path, 'JPEG', quality=95)
-        print(f"  [OK] Image generated with Pillow fallback: {output_path}")
-        return True
-        
-    except Exception as e:
-        print(f"Error in Pillow fallback: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return False
 
