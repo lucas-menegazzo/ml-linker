@@ -566,15 +566,31 @@ def generate_with_pillow_fallback(product_data: Dict, output_path: str, temp_ima
                     print(f"  [FALLBACK] Could not load logo: {str(e)}")
         
         if logo_img:
-            # Resize logo to fit (height: 80px, maintain aspect ratio)
-            logo_height = 80
+            # Resize logo to fit (height: 100px, maintain aspect ratio)
+            logo_height = 100
             logo_aspect = logo_img.width / logo_img.height
             logo_width = int(logo_height * logo_aspect)
             logo_img = logo_img.resize((logo_width, logo_height), Image.Resampling.LANCZOS)
             
-            # Position in bottom right
-            logo_x = width - logo_width - 50
-            logo_y = height - logo_height - 50
+            # Create black rounded background container
+            padding = 20
+            container_width = logo_width + (padding * 2)
+            container_height = logo_height + (padding * 2)
+            container_x = width - container_width - 50
+            container_y = height - container_height - 50
+            
+            # Draw rounded rectangle background
+            from src.image_generator import rounded_rectangle
+            rounded_rectangle(
+                draw,
+                [(container_x, container_y), (container_x + container_width, container_y + container_height)],
+                radius=16,
+                fill="#000000"
+            )
+            
+            # Position logo in center of container
+            logo_x = container_x + padding
+            logo_y = container_y + padding
             img.paste(logo_img, (logo_x, logo_y), logo_img if logo_img.mode == 'RGBA' else None)
         
         # Save image
