@@ -469,6 +469,14 @@ def extract_image(soup: BeautifulSoup) -> Optional[str]:
             if img_url:
                 # Clean up URL (remove size parameters if present)
                 img_url = img_url.split('?')[0]
+                # Prefer WebP format for better quality
+                if '-O.' in img_url or '-V.' in img_url or '-F.' in img_url:
+                    if '.webp' in img_url.lower():
+                        img_url = re.sub(r'-[OVF]\.webp$', '-O.webp', img_url, flags=re.IGNORECASE)
+                    else:
+                        img_url = re.sub(r'-[OVF]\.[^.]+$', '-O.webp', img_url, flags=re.IGNORECASE)
+                        if not img_url.endswith('.webp'):
+                            img_url = re.sub(r'-[OVF]\.[^.]+$', '-O.jpg', img_url)
                 # Ensure full URL
                 if img_url.startswith('//'):
                     img_url = 'https:' + img_url
