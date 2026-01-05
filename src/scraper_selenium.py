@@ -16,8 +16,14 @@ except ImportError:
     SELENIUM_AVAILABLE = False
 
 from typing import Dict, Optional
-from src.config import REQUEST_TIMEOUT, USER_AGENT
+import re
 import time
+
+try:
+    from src.config import REQUEST_TIMEOUT, USER_AGENT
+except:
+    USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    REQUEST_TIMEOUT = 10
 
 
 def scrape_product_selenium(url: str) -> Optional[Dict[str, any]]:
