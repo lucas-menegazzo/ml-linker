@@ -204,37 +204,37 @@ def extract_from_json(soup: BeautifulSoup, url: str) -> Optional[Dict]:
                             continue
                     
                     data = json.loads(json_str)
-                        # Navigate through the structure to find product data
-                        # This structure varies, so we'll try common paths
-                        if isinstance(data, dict):
-                            # Try common paths for product data
-                            paths = [
-                                ['initialState', 'components', 'product'],
-                                ['initialState', 'product'],
-                                ['product'],
-                                ['item', 'product'],
-                            ]
-                            for path in paths:
-                                current = data
-                                try:
-                                    for key in path:
-                                        current = current[key]
-                                    if isinstance(current, dict):
-                                        if 'title' in current and not product_data['title']:
-                                            product_data['title'] = current['title']
-                                        if 'pictures' in current and not product_data['image_url']:
-                                            pics = current['pictures']
-                                            if isinstance(pics, list) and len(pics) > 0:
-                                                product_data['image_url'] = pics[0].get('url', pics[0])
-                                        if 'price' in current and not product_data['current_price']:
-                                            price = current['price']
-                                            if isinstance(price, (int, float)):
-                                                product_data['current_price'] = float(price)
-                                            elif isinstance(price, dict):
-                                                product_data['current_price'] = float(price.get('amount', 0))
-                                        break
-                                except (KeyError, TypeError):
-                                    continue
+                    # Navigate through the structure to find product data
+                    # This structure varies, so we'll try common paths
+                    if isinstance(data, dict):
+                        # Try common paths for product data
+                        paths = [
+                            ['initialState', 'components', 'product'],
+                            ['initialState', 'product'],
+                            ['product'],
+                            ['item', 'product'],
+                        ]
+                        for path in paths:
+                            current = data
+                            try:
+                                for key in path:
+                                    current = current[key]
+                                if isinstance(current, dict):
+                                    if 'title' in current and not product_data['title']:
+                                        product_data['title'] = current['title']
+                                    if 'pictures' in current and not product_data['image_url']:
+                                        pics = current['pictures']
+                                        if isinstance(pics, list) and len(pics) > 0:
+                                            product_data['image_url'] = pics[0].get('url', pics[0])
+                                    if 'price' in current and not product_data['current_price']:
+                                        price = current['price']
+                                        if isinstance(price, (int, float)):
+                                            product_data['current_price'] = float(price)
+                                        elif isinstance(price, dict):
+                                            product_data['current_price'] = float(price.get('amount', 0))
+                                    break
+                            except (KeyError, TypeError):
+                                continue
                 except:
                     continue
             
