@@ -467,9 +467,9 @@ def generate_with_pillow_fallback(product_data: Dict, output_path: str, temp_ima
             fill="#FFFFFF"
         )
         
-        # Product image inside card - fill the card better without stretching
+        # Product image inside card - fill the card much better without stretching
         if product_img:
-            padding = 20  # Reduced padding to fill more space
+            padding = 5  # Minimal padding to maximize image size
             max_img_width = card_width - (padding * 2)
             max_img_height = card_height - (padding * 2)
             # Calculate aspect ratios
