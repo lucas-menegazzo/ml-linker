@@ -186,12 +186,10 @@ def generate_from_html_template(product_data: Dict, output_path: str, temp_image
         
         # Replace logo src with base64 data URL
         if logo_data_url:
-            html_content = re.sub(
-                r'<div class="logo-container">\s*<img class="logo"[^>]*src="[^"]*"[^>]*>\s*</div>',
-                f'<div class="logo-container"><img class="logo" src="{logo_data_url}" alt="Clicou Economizou" /></div>',
-                html_content,
-                flags=re.DOTALL
-            )
+            # Match the logo container with flexible whitespace
+            pattern = r'(<div class="logo-container">\s*)<img class="logo"[^>]*src="[^"]*"[^>]*>(\s*</div>)'
+            replacement = f'\\1<img class="logo" src="{logo_data_url}" alt="Clicou Economizou" />\\2'
+            html_content = re.sub(pattern, replacement, html_content)
         else:
             # Hide logo if not found
             html_content = re.sub(
