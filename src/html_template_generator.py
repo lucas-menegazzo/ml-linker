@@ -467,13 +467,26 @@ def generate_with_pillow_fallback(product_data: Dict, output_path: str, temp_ima
             fill="#FFFFFF"
         )
         
-        # Product image inside card - fill the card better
+        # Product image inside card - fill the card better without stretching
         if product_img:
             padding = 20  # Reduced padding to fill more space
             max_img_width = card_width - (padding * 2)
             max_img_height = card_height - (padding * 2)
+            # Calculate aspect ratios
+            img_aspect = product_img.width / product_img.height
+            card_aspect = max_img_width / max_img_height
+            
             # Resize to fill available space while maintaining aspect ratio
-            product_img.thumbnail((max_img_width, max_img_height), Image.Resampling.LANCZOS)
+            if img_aspect > card_aspect:
+                # Image is wider - fit to width
+                new_width = max_img_width
+                new_height = int(max_img_width / img_aspect)
+            else:
+                # Image is taller - fit to height
+                new_height = max_img_height
+                new_width = int(max_img_height * img_aspect)
+            
+            product_img = product_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
             img_x = card_x + (card_width - product_img.width) // 2
             img_y = card_y + (card_height - product_img.height) // 2
             img.paste(product_img, (img_x, img_y))
