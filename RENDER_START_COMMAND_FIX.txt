@@ -1,0 +1,30 @@
+========================================
+COMANDO PARA COLAR NO RENDER.COM
+========================================
+
+No campo "Start Command" do Render, cole EXATAMENTE isto:
+
+gunicorn server:app --bind 0.0.0.0:$PORT --timeout 120
+
+========================================
+OU (mais simples, se der erro):
+========================================
+
+gunicorn server:app
+
+(O Render define a porta automaticamente)
+
+========================================
+Build Command:
+========================================
+
+pip install -r requirements.txt
+
+========================================
+Environment:
+========================================
+
+Python 3 (deixe o Render detectar automaticamente)
+
+========================================
+

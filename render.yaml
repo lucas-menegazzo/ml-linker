@@ -3,7 +3,7 @@ services:
     name: gerador-posts-instagram
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn server:app
+    startCommand: gunicorn server:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --worker-class sync
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0

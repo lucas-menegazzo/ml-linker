@@ -1,0 +1,8 @@
+Comando para colar no Render.com:
+
+gunicorn server:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --worker-class sync
+
+OU (mais simples, se o Procfile estiver no repositório):
+
+Deixe em branco - o Render usará o Procfile automaticamente
+
