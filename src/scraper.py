@@ -181,17 +181,29 @@ def extract_from_json(soup: BeautifulSoup, url: str) -> Optional[Dict]:
     scripts = soup.find_all('script')
     for script in scripts:
         if script.string:
+            script_text = script.string
+            
             # Look for product data in window.__PRELOADED_STATE__
-            if '__PRELOADED_STATE__' in script.string or 'window.__PRELOADED_STATE__' in script.string:
+            if '__PRELOADED_STATE__' in script_text or 'window.__PRELOADED_STATE__' in script_text:
                 try:
                     # Extract JSON from script
-                    text = script.string
-                    # Try to find JSON object
-                    start = text.find('{')
-                    end = text.rfind('}') + 1
-                    if start >= 0 and end > start:
-                        json_str = text[start:end]
-                        data = json.loads(json_str)
+                    text = script_text
+                    # Try to find JSON object - look for window.__PRELOADED_STATE__ = {...}
+                    # Pattern: window.__PRELOADED_STATE__ = {...}
+                    pattern = r'window\.__PRELOADED_STATE__\s*=\s*(\{.*?\});'
+                    match = re.search(pattern, text, re.DOTALL)
+                    if match:
+                        json_str = match.group(1)
+                    else:
+                        # Try to find JSON object
+                        start = text.find('{')
+                        end = text.rfind('}') + 1
+                        if start >= 0 and end > start:
+                            json_str = text[start:end]
+                        else:
+                            continue
+                    
+                    data = json.loads(json_str)
                         # Navigate through the structure to find product data
                         # This structure varies, so we'll try common paths
                         if isinstance(data, dict):
@@ -227,12 +239,39 @@ def extract_from_json(soup: BeautifulSoup, url: str) -> Optional[Dict]:
                     continue
             
             # Look for price in data attributes or data-* patterns
-            price_match = re.search(r'"price"\s*:\s*(\d+(?:\.\d+)?)', script.string)
-            if price_match and not product_data['current_price']:
-                try:
-                    product_data['current_price'] = float(price_match.group(1))
-                except:
-                    pass
+            price_patterns = [
+                r'"price"\s*:\s*(\d+(?:\.\d+)?)',
+                r'"amount"\s*:\s*(\d+(?:\.\d+)?)',
+                r'"value"\s*:\s*(\d+(?:\.\d+)?)',
+                r'price["\']?\s*:\s*["\']?(\d+(?:\.\d+)?)',
+            ]
+            for pattern in price_patterns:
+                price_match = re.search(pattern, script_text, re.IGNORECASE)
+                if price_match and not product_data['current_price']:
+                    try:
+                        price_val = float(price_match.group(1))
+                        # Validate it's a reasonable price (between 1 and 1 million)
+                        if 1 <= price_val <= 1000000:
+                            product_data['current_price'] = price_val
+                            break
+                    except:
+                        pass
+            
+            # Look for title in JSON patterns
+            if not product_data['title']:
+                title_patterns = [
+                    r'"title"\s*:\s*"([^"]+)"',
+                    r'"name"\s*:\s*"([^"]+)"',
+                    r'"productName"\s*:\s*"([^"]+)"',
+                ]
+                for pattern in title_patterns:
+                    title_match = re.search(pattern, script_text, re.IGNORECASE)
+                    if title_match:
+                        title = title_match.group(1)
+                        # Basic validation - should be longer than 5 chars
+                        if len(title) > 5 and 'mercado livre' not in title.lower():
+                            product_data['title'] = title
+                            break
     
     # Return only if we got at least title or price
     if product_data['title'] or product_data['current_price']:
