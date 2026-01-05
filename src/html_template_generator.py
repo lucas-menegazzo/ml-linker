@@ -187,16 +187,18 @@ def generate_from_html_template(product_data: Dict, output_path: str, temp_image
         # Replace logo src with base64 data URL
         if logo_data_url:
             html_content = re.sub(
-                r'<img class="logo"[^>]*src="[^"]*"[^>]*>',
-                f'<img class="logo" src="{logo_data_url}" alt="Clicou Economizou" />',
-                html_content
+                r'<div class="logo-container">\s*<img class="logo"[^>]*src="[^"]*"[^>]*>\s*</div>',
+                f'<div class="logo-container"><img class="logo" src="{logo_data_url}" alt="Clicou Economizou" /></div>',
+                html_content,
+                flags=re.DOTALL
             )
         else:
             # Hide logo if not found
             html_content = re.sub(
-                r'<img class="logo"[^>]*>',
+                r'<div class="logo-container">\s*<img class="logo"[^>]*>\s*</div>',
                 '<!-- Logo not found -->',
-                html_content
+                html_content,
+                flags=re.DOTALL
             )
             print(f"  [WARN] Logo not found in assets folder, hiding logo element")
         
