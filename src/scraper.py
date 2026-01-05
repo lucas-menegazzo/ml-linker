@@ -30,6 +30,60 @@ def normalize_url(url: str) -> str:
     return url
 
 
+def try_mercado_livre_api(product_id: str) -> Optional[Dict]:
+    """
+    Try to fetch product data from Mercado Livre API.
+    This is a fallback when HTML parsing fails.
+    """
+    try:
+        # Mercado Livre API endpoint for items
+        api_url = f"https://api.mercadolivre.com/items/MLB{product_id}"
+        
+        headers = {
+            'User-Agent': USER_AGENT,
+            'Accept': 'application/json',
+        }
+        
+        print(f"  Trying Mercado Livre API for product ID: MLB{product_id}")
+        response = requests.get(api_url, headers=headers, timeout=REQUEST_TIMEOUT)
+        if response.status_code == 200:
+            data = response.json()
+            
+            product_data = {
+                'url': f"https://produto.mercadolivre.com.br/MLB-{product_id}",
+                'title': data.get('title', ''),
+                'image_url': None,
+                'original_price': None,
+                'current_price': None,
+                'discount_percentage': 0.0,
+                'currency': 'R$'
+            }
+            
+            # Extract image
+            pictures = data.get('pictures', [])
+            if pictures and len(pictures) > 0:
+                product_data['image_url'] = pictures[0].get('url', pictures[0].get('secure_url'))
+            
+            # Extract price
+            price = data.get('price')
+            if price:
+                product_data['current_price'] = float(price)
+            
+            # Extract currency
+            currency_id = data.get('currency_id', 'BRL')
+            product_data['currency'] = 'R$' if currency_id == 'BRL' else currency_id
+            
+            if product_data['title'] and product_data['current_price']:
+                print(f"  [OK] Successfully fetched data from Mercado Livre API")
+                return product_data
+        else:
+            print(f"  API returned status {response.status_code}")
+    except Exception as e:
+        print(f"  API fetch failed: {str(e)}")
+    
+    return None
+
+
 def scrape_product(url: str) -> Optional[Dict[str, any]]:
     """
     Scrape product information from Mercado Livre URL.
@@ -45,21 +99,46 @@ def scrape_product(url: str) -> Optional[Dict[str, any]]:
     clean_url = normalize_url(url)
     print(f"Scraping: {clean_url}")
     
+    # Try to extract product ID for API fallback
+    product_id = None
+    id_match = re.search(r'MLB-?(\d+)', clean_url, re.IGNORECASE)
+    if id_match:
+        product_id = id_match.group(1)
+    
+    # Try to extract product ID for API fallback
+    product_id = None
+    id_match = re.search(r'MLB-?(\d+)', clean_url, re.IGNORECASE)
+    if id_match:
+        product_id = id_match.group(1)
+    
     # Try Selenium first (most reliable for JavaScript-rendered pages)
+    # But skip if we're in a cloud environment where Chrome is not available
     try:
         from src.scraper_selenium import scrape_product_selenium, SELENIUM_AVAILABLE
         if SELENIUM_AVAILABLE:
-            print("  Using Selenium for JavaScript-rendered content...")
-            result = scrape_product_selenium(clean_url)
-            if result:
-                return result
-            print("  Selenium extraction failed, trying HTML parser...")
+            # Check if we're in a cloud environment (Render, Heroku, etc.)
+            import os
+            is_cloud = os.environ.get('RENDER') or os.environ.get('DYNO') or os.environ.get('FLY_APP_NAME')
+            
+            if not is_cloud:
+                # Only try Selenium if not in cloud (where Chrome is not available)
+                print("  Using Selenium for JavaScript-rendered content...")
+                result = scrape_product_selenium(clean_url)
+                if result:
+                    return result
+                print("  Selenium extraction failed, trying HTML parser...")
+            else:
+                print("  Cloud environment detected, skipping Selenium (Chrome not available), using HTML parser...")
         else:
             print("  Selenium not available, using HTML parser...")
     except ImportError:
         print("  Selenium not available, using HTML parser...")
     except Exception as e:
-        print(f"  Selenium error: {str(e)}, trying HTML parser...")
+        error_msg = str(e).lower()
+        if 'chrome' in error_msg and ('binary' in error_msg or 'executable' in error_msg):
+            print("  Chrome not available in this environment, using HTML parser...")
+        else:
+            print(f"  Selenium error: {str(e)}, trying HTML parser...")
     
     # Fall back to HTML parsing
     headers = {
@@ -119,11 +198,20 @@ def scrape_product(url: str) -> Optional[Dict[str, any]]:
             
             # Final validation
             if not product_data.get('title') or not product_data.get('current_price'):
-                print(f"Error: Could not extract required data (title and price)")
+                print(f"  HTML parser failed to extract data")
                 print(f"  Final title: {product_data.get('title', 'None')}")
                 print(f"  Final price: {product_data.get('current_price', 'None')}")
+                
+                # Try Mercado Livre API as last resort
+                if product_id:
+                    print(f"  Trying Mercado Livre API as fallback...")
+                    api_data = try_mercado_livre_api(product_id)
+                    if api_data:
+                        return api_data
+                
+                print(f"  Error: Could not extract required data (title and price)")
                 print(f"  Note: Mercado Livre pages are JavaScript-rendered.")
-                print(f"  Consider using Selenium for full page rendering.")
+                print(f"  Consider using Selenium for full page rendering (requires Chrome).")
                 return None
         
         return product_data
