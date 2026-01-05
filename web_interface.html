@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Posts Instagram - Mercado Livre</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #00AA00 0%, #008800 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #00AA00;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: monospace;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00AA00 0%, #008800 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,170,0,0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .btn-copy {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #000;
+        }
+
+        .result-box {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .result-box h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .result-link {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛍️ Gerador de Posts Instagram</h1>
+            <p>Gere posts automáticos com links de afiliado do Mercado Livre</p>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2 class="section-title">Configuração</h2>
+                <div class="input-group">
+                    <label for="socialCode">Seu Social Code (Link de Afiliado):</label>
+                    <input type="text" id="socialCode" placeholder="https://www.mercadolivre.com.br/social/lm-vendas?matt_word=..." value="https://www.mercadolivre.com.br/social/lm-vendas?matt_word=lm-vendas&matt_tool=67260399&forceInApp=true&ref=BDte%2BZwbjeO%2FTL2jSkK6YNszWGlT%2F0Mbc87CDJzvVf9y8JZelkh3gKx2C3%2BODBmsulYKqr4FSeBMTTs3jDN%2FMwi8eDecmWuDNEFCMcVLS4%2FUA3%2B1kNz5SIxT5dylSTSlBz0VtDCmcVulKvXval%2BKD5oeobvU8EVadSkIgiEpcoaPa%2BbOHPWMKHXfaddEoQuaXmFydw%3D%3D">
+                    <div class="help-text">Cole seu link de afiliado do Mercado Livre aqui</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">Adicionar Produto</h2>
+                <div class="input-group">
+                    <label for="productUrl">Link do Produto:</label>
+                    <input type="text" id="productUrl" placeholder="https://produto.mercadolivre.com.br/MLB-...">
+                    <div class="help-text">Cole o link do produto do Mercado Livre</div>
+                </div>
+
+                <button class="btn" onclick="addProduct()">
+                    ➕ Adicionar ao CSV e Gerar Imagem
+                </button>
+                <button class="btn btn-secondary" onclick="viewCSV()">
+                    📋 Ver CSV
+                </button>
+            </div>
+
+            <div id="status" class="status"></div>
+
+            <div class="section" id="resultSection" style="display: none;">
+                <h2 class="section-title">Resultado</h2>
+                <div class="result-box">
+                    <h3>Link de Afiliado Gerado:</h3>
+                    <div class="result-link" id="affiliateLink"></div>
+                    <button class="btn btn-copy" onclick="copyAffiliateLink()">📋 Copiar Link</button>
+                </div>
+
+                <div class="result-box" id="imageBox" style="display: none;">
+                    <h3>Imagem Gerada:</h3>
+                    <img id="previewImage" class="preview-image" alt="Preview">
+                    <div style="margin-top: 15px;">
+                        <button class="btn btn-copy" onclick="downloadImage()">💾 Baixar Imagem</button>
+                        <button class="btn btn-copy" onclick="copyImage()">📋 Copiar Imagem</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">CSV Atual</h2>
+                <textarea id="csvContent" readonly></textarea>
+                <button class="btn btn-secondary" onclick="downloadCSV()">💾 Baixar CSV</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Função para extrair ID do produto do link
+        function extractProductId(url) {
+            // Padrões: MLB-XXXXXXXXX ou /p/MLBXXXXXXXXX
+            const patterns = [
+                /MLB-?\d+/i,
+                /\/p\/(MLB\d+)/i,
+                /produto\.mercadolivre\.com\.br\/([^\/\?]+)/i
+            ];
+            
+            for (let pattern of patterns) {
+                const match = url.match(pattern);
+                if (match) {
+                    return match[0].replace(/MLB-?/, 'MLB-');
+                }
+            }
+            return null;
+        }
+
+        // Função para gerar link de afiliado
+        function generateAffiliateLink(productUrl, socialCode) {
+            const productId = extractProductId(productUrl);
+            if (!productId) {
+                throw new Error('Não foi possível extrair o ID do produto do link');
+            }
+
+            // Limpar o link do produto (remover parâmetros)
+            const cleanProductUrl = productUrl.split('#')[0].split('?')[0];
+            
+            // Combinar com social code
+            // O padrão do Mercado Livre é: social code + parâmetro mlm com o ID do produto
+            const socialCodeUrl = new URL(socialCode);
+            socialCodeUrl.searchParams.set('mlm', productId);
+            
+            return socialCodeUrl.toString();
+        }
+
+        // Função para verificar se servidor está rodando
+        async function checkServer() {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 segundos timeout
+                const response = await fetch('/api/test', { 
+                    method: 'GET',
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                return response.ok;
+            } catch (error) {
+                console.log('Servidor não está rodando:', error);
+                return false;
+            }
+        }
+
+        // Função para adicionar produto
+        async function addProduct() {
+            const productUrl = document.getElementById('productUrl').value.trim();
+            const socialCode = document.getElementById('socialCode').value.trim();
+            const statusDiv = document.getElementById('status');
+
+            if (!productUrl || !socialCode) {
+                showStatus('Por favor, preencha todos os campos', 'error');
+                return;
+            }
+
+            // Verificar se servidor está rodando
+            const serverRunning = await checkServer();
+            if (!serverRunning) {
+                // Fallback: gerar link localmente
+                try {
+                    showStatus('Gerando link localmente (servidor offline)...', 'info');
+                    const affiliateLink = generateAffiliateLink(productUrl, socialCode);
+                    
+                    // Adicionar ao CSV local
+                    const csvContent = document.getElementById('csvContent').value;
+                    const newLine = affiliateLink + '\n';
+                    const updatedCSV = csvContent ? csvContent + newLine : 'url\n' + newLine;
+                    document.getElementById('csvContent').value = updatedCSV;
+                    localStorage.setItem('products_csv', updatedCSV);
+                    
+                    // Mostrar resultado
+                    document.getElementById('affiliateLink').textContent = affiliateLink;
+                    document.getElementById('resultSection').style.display = 'block';
+                    
+                    showStatus('✅ Link gerado! Execute python server.py e depois python main.py para gerar a imagem.', 'info');
+                    document.getElementById('productUrl').value = '';
+                    return;
+                } catch (error) {
+                    showStatus('❌ Erro: ' + error.message, 'error');
+                    return;
+                }
+            }
+
+            try {
+                showStatus('Gerando link de afiliado...', 'info');
+                
+                // Gerar link de afiliado via API
+                const response = await fetch('/api/affiliate-link', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        product_url: productUrl,
+                        social_code: socialCode
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({error: 'Erro desconhecido'}));
+                    throw new Error(error.error || 'Erro ao gerar link');
+                }
+
+                const data = await response.json();
+                const affiliateLink = data.affiliate_link;
+                
+                // Adicionar ao CSV via API
+                const csvResponse = await fetch('/api/csv', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: affiliateLink
+                    })
+                });
+
+                if (!csvResponse.ok) {
+                    throw new Error('Erro ao adicionar ao CSV');
+                }
+
+                // Atualizar visualização do CSV
+                await viewCSV();
+
+                // Mostrar resultado
+                document.getElementById('affiliateLink').textContent = affiliateLink;
+                document.getElementById('resultSection').style.display = 'block';
+                
+                // Chamar API para gerar imagem
+                showStatus('Gerando imagem do post...', 'info');
+                await generateImage(productUrl, affiliateLink);
+
+                showStatus('✅ Produto adicionado com sucesso!', 'success');
+                document.getElementById('productUrl').value = '';
+
+            } catch (error) {
+                showStatus('❌ Erro: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        // Função para gerar imagem via API
+        async function generateImage(productUrl, affiliateLink) {
+            try {
+                showStatus('🔄 Gerando imagem... Isso pode levar alguns segundos...', 'info');
+                
+                // Chamar endpoint Python via fetch
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        product_url: productUrl,
+                        affiliate_link: affiliateLink
+                    })
+                });
+
+                if (response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.startsWith('image/')) {
+                        const blob = await response.blob();
+                        if (blob.size > 0) {
+                            const imageUrl = URL.createObjectURL(blob);
+                            document.getElementById('previewImage').src = imageUrl;
+                            document.getElementById('imageBox').style.display = 'block';
+                            showStatus('✅ Imagem gerada com sucesso!', 'success');
+                        } else {
+                            throw new Error('Imagem vazia recebida');
+                        }
+                    } else {
+                        // Se não for imagem, pode ser JSON com erro
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.error || 'Resposta inválida do servidor');
+                    }
+                } else {
+                    const errorData = await response.json().catch(() => ({error: 'Erro desconhecido'}));
+                    throw new Error(errorData.error || 'Erro ao gerar imagem');
+                }
+            } catch (error) {
+                console.error('Erro ao gerar imagem:', error);
+                showStatus('⚠️ Erro ao gerar imagem: ' + error.message + '. Execute python main.py para gerar manualmente.', 'error');
+            }
+        }
+
+        // Função para copiar link de afiliado
+        function copyAffiliateLink() {
+            const link = document.getElementById('affiliateLink').textContent;
+            navigator.clipboard.writeText(link).then(() => {
+                showStatus('✅ Link copiado para a área de transferência!', 'success');
+            });
+        }
+
+        // Função para baixar CSV
+        function downloadCSV() {
+            const csv = document.getElementById('csvContent').value;
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'products.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Função para baixar imagem
+        function downloadImage() {
+            const img = document.getElementById('previewImage');
+            const a = document.createElement('a');
+            a.href = img.src;
+            a.download = 'product_image.jpg';
+            a.click();
+        }
+
+        // Função para copiar imagem
+        async function copyImage() {
+            try {
+                const img = document.getElementById('previewImage');
+                const response = await fetch(img.src);
+                const blob = await response.blob();
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob })
+                ]);
+                showStatus('✅ Imagem copiada para a área de transferência!', 'success');
+            } catch (error) {
+                showStatus('❌ Erro ao copiar imagem. Tente baixar.', 'error');
+            }
+        }
+
+        // Função para mostrar status
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + type;
+            statusDiv.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Função para visualizar CSV
+        async function viewCSV() {
+            try {
+                const response = await fetch('/api/csv');
+                if (response.ok) {
+                    const data = await response.text();
+                    document.getElementById('csvContent').value = data;
+                    localStorage.setItem('products_csv', data);
+                } else {
+                    // Fallback para localStorage
+                    const saved = localStorage.getItem('products_csv');
+                    if (saved) {
+                        document.getElementById('csvContent').value = saved;
+                    } else {
+                        document.getElementById('csvContent').value = 'url\n';
+                    }
+                }
+            } catch (error) {
+                // Se não houver servidor, usar localStorage
+                const saved = localStorage.getItem('products_csv');
+                if (saved) {
+                    document.getElementById('csvContent').value = saved;
+                } else {
+                    document.getElementById('csvContent').value = 'url\n';
+                }
+            }
+        }
+
+        // Salvar CSV no localStorage quando mudar
+        document.getElementById('csvContent').addEventListener('input', function() {
+            localStorage.setItem('products_csv', this.value);
+        });
+
+
+        // Verificar servidor ao carregar
+        window.addEventListener('load', async function() {
+            const saved = localStorage.getItem('products_csv');
+            if (saved) {
+                document.getElementById('csvContent').value = saved;
+            } else {
+                document.getElementById('csvContent').value = 'url\n';
+            }
+            
+            // Verificar se servidor está rodando
+            const serverRunning = await checkServer();
+            if (!serverRunning) {
+                showStatus('⚠️ Servidor não está rodando. Execute: python server.py', 'info');
+            }
+        });
+    </script>
+</body>
+</html>
+

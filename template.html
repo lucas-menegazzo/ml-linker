@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Template - Achado do Dia</title>
+
+  <!-- Fonte parecida -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --size: 1080px;            /* tamanho do post */
+      --bg1:#f4f4f6;
+      --bg2:#e7e7ea;
+      --ink:#121317;
+      --muted:#2a2c33;
+      --green:#19b45a;
+      --green2:#1ad163;
+      --shadow: 0 22px 45px rgba(0,0,0,.18);
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      background:#111;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    .ribbon{
+    position:absolute;
+    top:160px;
+    left:-40px;
+    transform: rotate(-6deg);
+    background: linear-gradient(90deg, #ffcc00, #ff9900);
+    color:#121317;
+    font-weight:900;
+    font-size:30px;
+    padding:18px 60px;
+    box-shadow: 0 18px 40px rgba(0,0,0,.35);
+    text-transform:uppercase;
+    letter-spacing:1px;
+    z-index:10;
+    }
+    .marketplace{
+    position:absolute;
+    top:70px;
+    right:70px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:14px 22px;
+    border-radius:16px;
+    background:#ffe600;
+    box-shadow:0 14px 35px rgba(0,0,0,.25);
+    }
+
+    .marketplace img{
+    height:42px;
+    }
+
+    .marketplace span{
+    font-weight:900;
+    font-size:22px;
+    color:#2d3277;
+    }
+
+    /* “Canvas” (o que você vai tirar print/screenshot) */
+    .post{
+      width: var(--size);
+      height: var(--size);
+      position: relative;
+      overflow: visible;
+      border-radius: 18px;
+      background:
+        radial-gradient(1200px 800px at 20% 20%, #ffffff 0%, var(--bg1) 40%, var(--bg2) 100%);
+      box-shadow: 0 30px 80px rgba(0,0,0,.35);
+      
+    }
+
+    /* textura leve */
+    .noise{
+      position:absolute; inset:-40px;
+      background-image:
+        radial-gradient(rgba(0,0,0,.06) 1px, transparent 1px);
+      background-size: 9px 9px;
+      opacity:.15;
+      mix-blend-mode:multiply;
+      transform: rotate(-6deg);
+      pointer-events:none;
+    }
+
+    /* Selo topo */
+    .badge{
+      position:absolute;
+      top:70px; left:70px;
+      display:inline-flex;
+      align-items:center;
+      gap:14px;
+      padding:16px 22px;
+      border-radius: 14px;
+      background: #0f1014;
+      color:#fff;
+      font-weight: 900;
+      letter-spacing:.5px;
+      text-transform: uppercase;
+      box-shadow: 0 14px 30px rgba(0,0,0,.22);
+    }
+    .badge .star{
+      width:26px; height:26px;
+      display:inline-grid; place-items:center;
+      border-radius: 8px;
+      background: #ffd400;
+      color:#0f1014;
+      font-size:16px;
+      line-height:1;
+    }
+
+    /* card "produto" */
+    .product{
+      position:absolute;
+      left:60px;
+      top:200px;
+      width: 600px;
+      height: 600px;
+      border-radius: 40px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(0,0,0,.06);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 50px;
+    }
+    .product img{
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      object-position: center;
+      filter: drop-shadow(0 18px 28px rgba(0,0,0,.18));
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* lado direito (preço) */
+    .right{
+      position:absolute;
+      right:50px;
+      top:220px;
+      width: 380px;
+      height: 560px;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      justify-content:flex-start;
+      gap:18px;
+    }
+
+    .pricePanel{
+      width: 100%;
+      height: 260px;
+      border-radius: 26px;
+      background:
+        radial-gradient(600px 300px at 20% 30%, rgba(255,255,255,.35), transparent 60%),
+        linear-gradient(135deg, var(--green2) 0%, var(--green) 55%, #0f8a43 100%);
+      box-shadow: var(--shadow);
+      padding: 34px 34px 26px;
+      color:#fff;
+      position:relative;
+      overflow:hidden;
+    }
+    .pricePanel::after{
+      content:"";
+      position:absolute;
+      right:-120px; top:-80px;
+      width: 340px; height: 340px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.14);
+      transform: rotate(18deg);
+    }
+
+    .currency{
+      font-weight: 900;
+      font-size: 44px;
+      opacity:.95;
+      letter-spacing:.5px;
+    }
+    .price{
+      font-size: 110px;
+      letter-spacing: -3px;
+      text-shadow:
+        0 10px 25px rgba(0,0,0,.35),
+        0 0 35px rgba(255,255,255,.45);
+    }
+    /* CTA inferior */
+    .cta{
+      position:absolute;
+      left:85px;
+      bottom:120px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding: 22px 38px;
+      border-radius: 22px;
+      background: #1a1b20;
+      color:#fff;
+      font-weight: 800;
+      font-size: 34px;
+      box-shadow: 0 18px 38px rgba(0,0,0,.22);
+    }
+
+    /* pontinhos decorativos */
+    .dots{
+      position:absolute;
+      right:80px;
+      bottom:120px;
+      width: 220px;
+      height: 140px;
+      background-image: radial-gradient(rgba(0,0,0,.22) 2px, transparent 2px);
+      background-size: 18px 18px;
+      opacity:.35;
+      border-radius: 22px;
+      transform: rotate(-8deg);
+      pointer-events:none;
+    }
+
+    /* “glow” leve */
+    .glow{
+      position:absolute; inset:auto auto -220px -240px;
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(26,209,99,.22), transparent 60%);
+      filter: blur(1px);
+      pointer-events:none;
+    }
+
+    /* helpers p/ editar conteúdo rápido */
+    .sr{
+      position:absolute;
+      left:-9999px;
+      top:auto;
+      width:1px; height:1px;
+      overflow:hidden;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Troque apenas o que está marcado com DATA -->
+  <div class="post" id="post">
+    <div class="glow"></div>
+    <div class="noise"></div>
+    <div class="ribbon">⚡ Oferta Relâmpago</div>
+    <div class="badge">
+      <span class="star">★</span>
+      <span><!-- DATA -->ACHADO DO DIA</span>
+    </div>
+
+    <div class="product">
+      <!-- DATA: substitua pela sua imagem (png/jpg/webp) -->
+      <img
+        src="https://images.unsplash.com/photo-1600267165416-67c17a4f4d49?auto=format&fit=contain&w=1200&q=80"
+        alt="Produto"
+        crossorigin="anonymous"
+      />
+    </div>
+
+    <div class="right">
+      <div class="pricePanel">
+        <div class="currency"><!-- DATA -->R$</div>
+        <div class="price"><!-- DATA -->99,90</div>
+      </div>
+    </div>
+
+    <div class="cta"><!-- DATA -->Vale muito a pena</div>
+    <div class="dots"></div>
+  </div>
+
+  <!-- Dica: para exportar como imagem, tire screenshot do #post (1080x1080).
+       Se estiver usando Puppeteer/Playwright, capture o elemento com clip/bounding box. -->
+</body>
+</html>
