@@ -469,14 +469,15 @@ def extract_image(soup: BeautifulSoup) -> Optional[str]:
             if img_url:
                 # Clean up URL (remove size parameters if present)
                 img_url = img_url.split('?')[0]
-                # Prefer WebP format for better quality
-                if '-O.' in img_url or '-V.' in img_url or '-F.' in img_url:
+                # Always try to get -O (original/full size) WebP version
+                # Replace any size suffix (-R, -V, -F, -O, etc.) with -O.webp
+                if re.search(r'-[RVOF]\.[^.]+$', img_url, re.IGNORECASE):
+                    # If already WebP, just ensure it's -O (original/full size)
                     if '.webp' in img_url.lower():
-                        img_url = re.sub(r'-[OVF]\.webp$', '-O.webp', img_url, flags=re.IGNORECASE)
+                        img_url = re.sub(r'-[RVOF]\.webp$', '-O.webp', img_url, flags=re.IGNORECASE)
                     else:
-                        img_url = re.sub(r'-[OVF]\.[^.]+$', '-O.webp', img_url, flags=re.IGNORECASE)
-                        if not img_url.endswith('.webp'):
-                            img_url = re.sub(r'-[OVF]\.[^.]+$', '-O.jpg', img_url)
+                        # Convert to WebP with -O suffix (original/full size)
+                        img_url = re.sub(r'-[RVOF]\.[^.]+$', '-O.webp', img_url, flags=re.IGNORECASE)
                 # Ensure full URL
                 if img_url.startswith('//'):
                     img_url = 'https:' + img_url
