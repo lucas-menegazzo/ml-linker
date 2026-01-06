@@ -564,34 +564,32 @@ def generate_with_pillow_fallback(product_data: Dict, output_path: str, temp_ima
                     print(f"  [FALLBACK] Could not load logo: {str(e)}")
         
         if logo_img:
-            # Resize logo to fit (height: 140px, maintain aspect ratio)
-            logo_height = 140
+            # Resize logo to fit (height: 340px, maintain aspect ratio)
+            logo_height = 340
             logo_aspect = logo_img.width / logo_img.height
             logo_width = int(logo_height * logo_aspect)
             logo_img = logo_img.resize((logo_width, logo_height), Image.Resampling.LANCZOS)
             
-            # Create black rounded background container with proportional padding
-            # Padding: top/left/right: 24px, bottom: 32px (to move logo up)
-            padding_top = 24
-            padding_sides = 28
-            padding_bottom = 32
+            # Create black rounded background container with reduced padding
+            padding = 16
+            padding_sides = 20
             container_width = logo_width + (padding_sides * 2)
-            container_height = logo_height + padding_top + padding_bottom
+            container_height = logo_height + (padding * 2)
             container_x = width - container_width - 50
-            container_y = height - container_height - 30  # 30px from bottom (was 50px)
+            container_y = height - container_height - 20  # 20px from bottom (moved down)
             
             # Draw rounded rectangle background
             from src.image_generator import rounded_rectangle
             rounded_rectangle(
                 draw,
                 [(container_x, container_y), (container_x + container_width, container_y + container_height)],
-                radius=18,
+                radius=5,
                 fill="#000000"
             )
             
-            # Position logo in center of container (with more padding at bottom)
+            # Position logo in center of container
             logo_x = container_x + padding_sides
-            logo_y = container_y + padding_top
+            logo_y = container_y + padding
             img.paste(logo_img, (logo_x, logo_y), logo_img if logo_img.mode == 'RGBA' else None)
         
         # Save image
