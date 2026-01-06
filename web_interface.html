@@ -121,6 +121,11 @@
             color: #000;
         }
 
+        .btn-instagram {
+            background: linear-gradient(135deg, #E1306C 0%, #C13584 50%, #833AB4 100%);
+            color: white;
+        }
+
         .result-box {
             background: #f8f9fa;
             border: 2px solid #e0e0e0;
@@ -258,6 +263,7 @@
                     <div style="margin-top: 15px;">
                         <button class="btn btn-copy" onclick="downloadImage()">💾 Baixar Imagem</button>
                         <button class="btn btn-copy" onclick="copyImage()">📋 Copiar Imagem</button>
+                        <button class="btn btn-instagram" onclick="postToInstagram()">📱 Postar no Instagram</button>
                     </div>
                 </div>
             </div>
@@ -507,6 +513,37 @@
             } catch (error) {
                 showStatus('❌ Erro ao copiar imagem. Tente baixar.', 'error');
             }
+        }
+
+        // Função para postar no Instagram
+        function postToInstagram() {
+            // Primeiro, baixar a imagem para garantir que está disponível
+            downloadImage();
+            
+            // Abrir Instagram Web em nova aba
+            const instagramUrl = 'https://www.instagram.com/';
+            window.open(instagramUrl, '_blank');
+            
+            // Mostrar instruções
+            const affiliateLink = document.getElementById('affiliateLink').textContent;
+            const instructions = `
+📱 Como postar no Instagram:
+
+1. Faça login no Instagram (aberto em nova aba)
+2. Clique em "Criar" ou no ícone ➕
+3. Selecione a imagem que acabou de baixar
+4. Adicione a legenda com o link de afiliado:
+   ${affiliateLink}
+5. Publique!
+
+💡 Dica: Você pode copiar o link de afiliado acima e colar na legenda do post.
+            `;
+            
+            setTimeout(() => {
+                alert(instructions);
+            }, 500);
+            
+            showStatus('📱 Instagram aberto! Siga as instruções que aparecerão em breve.', 'info');
         }
 
         // Função para mostrar status
