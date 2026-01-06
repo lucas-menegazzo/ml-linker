@@ -507,6 +507,15 @@ def extract_image_aggressive(soup: BeautifulSoup) -> Optional[str]:
         img_url = og_image.get('content')
         if img_url.startswith('//'):
             img_url = 'https:' + img_url
+        # Always try to get -O (original/full size) WebP version
+        # Replace any size suffix (-R, -V, -F, -O, etc.) with -O.webp
+        if re.search(r'-[RVOF]\.[^.]+$', img_url, re.IGNORECASE):
+            # If already WebP, just ensure it's -O (original/full size)
+            if '.webp' in img_url.lower():
+                img_url = re.sub(r'-[RVOF]\.webp$', '-O.webp', img_url, flags=re.IGNORECASE)
+            else:
+                # Convert to WebP with -O suffix (original/full size)
+                img_url = re.sub(r'-[RVOF]\.[^.]+$', '-O.webp', img_url, flags=re.IGNORECASE)
         return img_url
     
     # Try all images and find the largest one
@@ -538,6 +547,15 @@ def extract_image_aggressive(soup: BeautifulSoup) -> Optional[str]:
             largest_img = 'https:' + largest_img
         elif largest_img.startswith('/'):
             largest_img = 'https://www.mercadolivre.com.br' + largest_img
+        # Always try to get -O (original/full size) WebP version
+        # Replace any size suffix (-R, -V, -F, -O, etc.) with -O.webp
+        if re.search(r'-[RVOF]\.[^.]+$', largest_img, re.IGNORECASE):
+            # If already WebP, just ensure it's -O (original/full size)
+            if '.webp' in largest_img.lower():
+                largest_img = re.sub(r'-[RVOF]\.webp$', '-O.webp', largest_img, flags=re.IGNORECASE)
+            else:
+                # Convert to WebP with -O suffix (original/full size)
+                largest_img = re.sub(r'-[RVOF]\.[^.]+$', '-O.webp', largest_img, flags=re.IGNORECASE)
         return largest_img
     
     return None
