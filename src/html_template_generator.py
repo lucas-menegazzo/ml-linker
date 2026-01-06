@@ -570,11 +570,10 @@ def generate_with_pillow_fallback(product_data: Dict, output_path: str, temp_ima
             logo_width = int(logo_height * logo_aspect)
             logo_img = logo_img.resize((logo_width, logo_height), Image.Resampling.LANCZOS)
             
-            # Create black rounded background container with minimal padding (just slightly bigger than logo)
-            padding_vertical = 8
-            padding_horizontal = 12
-            container_width = logo_width + (padding_horizontal * 2)
-            container_height = logo_height + (padding_vertical * 2)
+            # Create black rounded background container with minimal padding (10px bigger than logo)
+            padding = 5  # 5px on each side = 10px total increase
+            container_width = logo_width + (padding * 2)
+            container_height = logo_height + (padding * 2)
             container_x = width - container_width - 50
             container_y = height - container_height - 20  # 20px from bottom
             
@@ -588,8 +587,8 @@ def generate_with_pillow_fallback(product_data: Dict, output_path: str, temp_ima
             )
             
             # Position logo in center of container
-            logo_x = container_x + padding_horizontal
-            logo_y = container_y + padding_vertical
+            logo_x = container_x + padding
+            logo_y = container_y + padding
             img.paste(logo_img, (logo_x, logo_y), logo_img if logo_img.mode == 'RGBA' else None)
         
         # Save image
